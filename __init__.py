@@ -8,13 +8,14 @@ from urllib import parse
 import requests
 from albert import *
 
-md_iid = "3.0"
-md_version = "3.6.1"
+md_iid = "4.0"
+md_version = "3.7.0"
 md_name = "Paperless"
 md_description = "Manage saved documents via a paperless instance"
 md_license = "MIT"
 md_url = "https://github.com/Pete-Hamlin/albert-python"
 md_authors = ["@Pete-Hamlin"]
+md_maintainers = ["@Pete-Hamlin"]
 md_lib_dependencies = ["requests"]
 
 
@@ -38,7 +39,7 @@ class DocumentFetcherThread(Thread):
 
 
 class Plugin(PluginInstance, IndexQueryHandler):
-    iconUrls = [f"file:{Path(__file__).parent}/paperless.png"]
+    logo_icon = Path(__file__).parent / "paperless.png"
     limit = 250
     user_agent = "org.albert.paperless"
 
@@ -169,7 +170,6 @@ class Plugin(PluginInstance, IndexQueryHandler):
             {"type": "spinbox", "property": "cache_length", "label": "Cache length (minutes)"},
         ]
 
-
     def updateIndexItems(self):
         self.setIndexItems(self._index_items)
 
@@ -182,7 +182,9 @@ class Plugin(PluginInstance, IndexQueryHandler):
             item = self._gen_item(document)
             self._index_items.append(IndexItem(item=item, string=filter))
         self.updateIndexItems()
-        info("Indexed {} documents [{:d} ms]".format(len(self._index_items), (int(perf_counter_ns() - start) // 1000000)))
+        info(
+            "Indexed {} documents [{:d} ms]".format(len(self._index_items), (int(perf_counter_ns() - start) // 1000000))
+        )
 
     def handleTriggerQuery(self, query):
         stripped = query.string.strip()
@@ -191,14 +193,16 @@ class Plugin(PluginInstance, IndexQueryHandler):
         else:
             query.add(
                 StandardItem(
-                    text=md_name, subtext="Search for a document in Paperless", iconUrls=self.iconUrls
+                    text=md_name,
+                    subtext="Search for a document in Paperless",
+                    icon_factory=lambda: makeImageIcon(self.logo_icon),
                 )
             )
         query.add(
             StandardItem(
                 text="Refresh cache index",
                 subtext="Refresh indexed links",
-                iconUrls=["xdg:view-refresh"],
+                icon_factory=makeThemeIcon("view-refresh"),
                 actions=[Action("refresh", "Refresh paperless index", lambda: self.fetchIndexItems())],
             )
         )
@@ -228,7 +232,7 @@ class Plugin(PluginInstance, IndexQueryHandler):
                     document.get("tags") or "No tags",
                 ]
             ),
-            iconUrls=self.iconUrls,
+            icon_factory=lambda: makeImageIcon(self.logo_icon),
             actions=[
                 Action("download", "Download document", lambda u=download_url: self._download_document(u)),
                 Action("open", "Open document in browser", lambda u=preview_url: openUrl(u)),
@@ -246,7 +250,8 @@ class Plugin(PluginInstance, IndexQueryHandler):
             return
         if response.ok:
             header = (
-                response.headers.get("Content-Disposition", "").split("'")[1].replace(" ", "_") or "albert_paperless_dl.pdf"
+                response.headers.get("Content-Disposition", "").split("'")[1].replace(" ", "_")
+                or "albert_paperless_dl.pdf"
             )
             local_file = Path(self._download_path).expanduser() / header
             with local_file.open(mode="wb") as dl_file:
