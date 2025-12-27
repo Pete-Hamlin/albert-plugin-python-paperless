@@ -74,6 +74,20 @@ class Plugin(PluginInstance, IndexQueryHandler):
     def defaultTrigger(self) -> str:
         return "pl "
 
+    def synopsis(self, _) -> str:
+        filters = [
+            filter
+            for filter in [
+                "name",
+                "tags" if self.filter_by_tags else None,
+                "type" if self.filter_by_type else None,
+                "correspondent" if self.filter_by_correspondent else None,
+                "body" if self.filter_by_body else None,
+            ]
+            if filter is not None
+        ]
+        return "<document {}>".format("|".join(filters))
+
     @property
     def instance_url(self):
         return self._instance_url
