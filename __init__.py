@@ -8,8 +8,8 @@ from urllib import parse
 import requests
 from albert import *
 
-md_iid = "4.0"
-md_version = "3.7.0"
+md_iid = "5.0"
+md_version = "3.8.0"
 md_name = "Paperless"
 md_description = "Manage saved documents via a paperless instance"
 md_license = "MIT"
@@ -66,6 +66,10 @@ class Plugin(PluginInstance, IndexQueryHandler):
 
         self._thread = DocumentFetcherThread(callback=self.fetchIndexItems, cache_length=self._cache_length)
         self._thread.start()
+
+    @staticmethod
+    def makeIcon():
+        return Icon.image(Path(__file__).parent / "paperless.png")
 
     def __del__(self):
         self._thread.stop()
@@ -209,14 +213,14 @@ class Plugin(PluginInstance, IndexQueryHandler):
                 StandardItem(
                     text=md_name,
                     subtext="Search for a document in Paperless",
-                    icon_factory=lambda: makeImageIcon(self.logo_icon),
+                    icon_factory=Plugin.makeIcon,
                 )
             )
         query.add(
             StandardItem(
                 text="Refresh cache index",
                 subtext="Refresh indexed links",
-                icon_factory=makeThemeIcon("view-refresh"),
+                icon_factory=Plugin.makeIcon,
                 actions=[Action("refresh", "Refresh paperless index", lambda: self.fetchIndexItems())],
             )
         )
@@ -246,7 +250,7 @@ class Plugin(PluginInstance, IndexQueryHandler):
                     document.get("tags") or "No tags",
                 ]
             ),
-            icon_factory=lambda: makeImageIcon(self.logo_icon),
+            icon_factory=Plugin.makeIcon,
             actions=[
                 Action("download", "Download document", lambda u=download_url: self._download_document(u)),
                 Action("open", "Open document in browser", lambda u=preview_url: openUrl(u)),
