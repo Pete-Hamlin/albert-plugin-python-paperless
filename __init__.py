@@ -9,7 +9,7 @@ import requests
 from albert import *
 
 md_iid = "5.0"
-md_version = "3.8.0"
+md_version = "3.8.1"
 md_name = "Paperless"
 md_description = "Manage saved documents via a paperless instance"
 md_license = "MIT"
@@ -49,13 +49,17 @@ class Plugin(PluginInstance, IndexQueryHandler):
 
         self._index_items = []
 
-        self._instance_url = self.readConfig("instance_url", str) or "http://localhost:8000"
+        self._instance_url = (
+            self.readConfig("instance_url", str) or "http://localhost:8000"
+        )
         self._api_key = self.readConfig("api_key", str) or ""
         self._download_path = self.readConfig("download_path", str) or "~/Downloads"
 
         self._filter_by_tags = self.readConfig("filter_by_tags", bool) or True
         self._filter_by_type = self.readConfig("filter_by_type", bool) or True
-        self._filter_by_correspondent = self.readConfig("filter_by_correspondent", bool) or True
+        self._filter_by_correspondent = (
+            self.readConfig("filter_by_correspondent", bool) or True
+        )
         self._filter_by_body = self.readConfig("filter_by_body", bool) or False
 
         self._cache_length = self.readConfig("cache_length", int) or 60
@@ -64,12 +68,17 @@ class Plugin(PluginInstance, IndexQueryHandler):
         self._types = []
         self._correspondents = []
 
-        self._thread = DocumentFetcherThread(callback=self.fetchIndexItems, cache_length=self._cache_length)
+        self._thread = DocumentFetcherThread(
+            callback=self.fetchIndexItems, cache_length=self._cache_length
+        )
         self._thread.start()
 
     @staticmethod
     def makeIcon():
         return Icon.image(Path(__file__).parent / "paperless.png")
+
+    def makeSyncIcon():
+        return Icon.theme("view-refresh")
 
     def __del__(self):
         self._thread.stop()
@@ -132,7 +141,9 @@ class Plugin(PluginInstance, IndexQueryHandler):
         if self._thread.is_alive():
             self._thread.stop()
             self._thread.join()
-        self._thread = DocumentFetcherThread(callback=self.fetchIndexItems, cache_length=self._cache_length)
+        self._thread = DocumentFetcherThread(
+            callback=self.fetchIndexItems, cache_length=self._cache_length
+        )
         self._thread.start()
 
     @property
@@ -181,11 +192,31 @@ class Plugin(PluginInstance, IndexQueryHandler):
                 "widget_properties": {"echoMode": "Password"},
             },
             {"type": "lineedit", "property": "download_path", "label": "Download Path"},
-            {"type": "checkbox", "property": "filter_by_tags", "label": "Filter by document tags"},
-            {"type": "checkbox", "property": "filter_by_type", "label": "Filter by document type"},
-            {"type": "checkbox", "property": "filter_by_correspondent", "label": "Filter by document correspondent"},
-            {"type": "checkbox", "property": "filter_by_body", "label": "Filter by document body"},
-            {"type": "spinbox", "property": "cache_length", "label": "Cache length (minutes)"},
+            {
+                "type": "checkbox",
+                "property": "filter_by_tags",
+                "label": "Filter by document tags",
+            },
+            {
+                "type": "checkbox",
+                "property": "filter_by_type",
+                "label": "Filter by document type",
+            },
+            {
+                "type": "checkbox",
+                "property": "filter_by_correspondent",
+                "label": "Filter by document correspondent",
+            },
+            {
+                "type": "checkbox",
+                "property": "filter_by_body",
+                "label": "Filter by document body",
+            },
+            {
+                "type": "spinbox",
+                "property": "cache_length",
+                "label": "Cache length (minutes)",
+            },
         ]
 
     def updateIndexItems(self):
@@ -201,29 +232,37 @@ class Plugin(PluginInstance, IndexQueryHandler):
             self._index_items.append(IndexItem(item=item, string=filter))
         self.updateIndexItems()
         info(
-            "Indexed {} documents [{:d} ms]".format(len(self._index_items), (int(perf_counter_ns() - start) // 1000000))
+            "Indexed {} documents [{:d} ms]".format(
+                len(self._index_items), (int(perf_counter_ns() - start) // 1000000)
+            )
         )
 
-    def handleTriggerQuery(self, query):
-        stripped = query.string.strip()
-        if stripped:
-            TriggerQueryHandler.handleTriggerQuery(self, query)
+    def items(self, ctx):
+        if ctx.query.strip():
+            items = self.rankItems(ctx)
         else:
-            query.add(
+            items = [
                 StandardItem(
                     text=md_name,
                     subtext="Search for a document in Paperless",
                     icon_factory=Plugin.makeIcon,
                 )
-            )
-        query.add(
+            ]
+        items.append(
             StandardItem(
                 text="Refresh cache index",
-                subtext="Refresh indexed links",
-                icon_factory=Plugin.makeIcon,
-                actions=[Action("refresh", "Refresh paperless index", lambda: self.fetchIndexItems())],
+                subtext="Refresh indexed documents",
+                icon_factory=Plugin.makeSyncIcon,
+                actions=[
+                    Action(
+                        "refresh",
+                        "Refresh Linkding index",
+                        lambda: self.fetchIndexItems(),
+                    )
+                ],
             )
         )
+        yield items
 
     def _create_filters(self, item: dict):
         filters = item["title"]
@@ -238,8 +277,12 @@ class Plugin(PluginInstance, IndexQueryHandler):
         return filters.lower()
 
     def _gen_item(self, document: dict):
-        preview_url = "{}/api/documents/{}/preview/".format(self._instance_url, document["id"])
-        download_url = "{}/api/documents/{}/download/".format(self._instance_url, document["id"])
+        preview_url = "{}/api/documents/{}/preview/".format(
+            self._instance_url, document["id"]
+        )
+        download_url = "{}/api/documents/{}/download/".format(
+            self._instance_url, document["id"]
+        )
         return StandardItem(
             id=str(self.id),
             text=document["title"],
@@ -252,15 +295,32 @@ class Plugin(PluginInstance, IndexQueryHandler):
             ),
             icon_factory=Plugin.makeIcon,
             actions=[
-                Action("download", "Download document", lambda u=download_url: self._download_document(u)),
-                Action("open", "Open document in browser", lambda u=preview_url: openUrl(u)),
-                Action("copy", "Copy preview URL to clipboard", lambda u=preview_url: setClipboardText(u)),
-                Action("copy-dl", "Copy download URL to clipboard", lambda u=download_url: setClipboardText(u)),
+                Action(
+                    "download",
+                    "Download document",
+                    lambda u=download_url: self._download_document(u),
+                ),
+                Action(
+                    "open", "Open document in browser", lambda u=preview_url: openUrl(u)
+                ),
+                Action(
+                    "copy",
+                    "Copy preview URL to clipboard",
+                    lambda u=preview_url: setClipboardText(u),
+                ),
+                Action(
+                    "copy-dl",
+                    "Copy download URL to clipboard",
+                    lambda u=download_url: setClipboardText(u),
+                ),
             ],
         )
 
     def _download_document(self, url: str):
-        headers = {"User-Agent": self.user_agent, "Authorization": f"Token {self._api_key}"}
+        headers = {
+            "User-Agent": self.user_agent,
+            "Authorization": f"Token {self._api_key}",
+        }
         try:
             response = requests.get(url, timeout=5, headers=headers)
         except requests.ConnectionError:
@@ -268,7 +328,9 @@ class Plugin(PluginInstance, IndexQueryHandler):
             return
         if response.ok:
             header = (
-                response.headers.get("Content-Disposition", "").split("'")[1].replace(" ", "_")
+                response.headers.get("Content-Disposition", "")
+                .split("'")[1]
+                .replace(" ", "_")
                 or "albert_paperless_dl.pdf"
             )
             local_file = Path(self._download_path).expanduser() / header
@@ -283,7 +345,9 @@ class Plugin(PluginInstance, IndexQueryHandler):
     def _parse_tag(self, tag: int) -> str:
         if tag:
             try:
-                return next(parsed["name"] for parsed in self._tags if parsed["id"] == tag)
+                return next(
+                    parsed["name"] for parsed in self._tags if parsed["id"] == tag
+                )
             except StopIteration:
                 warning(f"Error parsing tag {tag}")
                 return f"<tag-{tag}>"
@@ -291,16 +355,26 @@ class Plugin(PluginInstance, IndexQueryHandler):
 
     def _parse_type(self, doctype: int):
         if doctype:
-            return next(parsed["name"] for parsed in self._types if parsed["id"] == doctype)
+            return next(
+                parsed["name"] for parsed in self._types if parsed["id"] == doctype
+            )
 
     def _parse_correspondent(self, correspondent: int):
         if correspondent:
-            return next(parsed["name"] for parsed in self._correspondents if parsed["id"] == correspondent)
+            return next(
+                parsed["name"]
+                for parsed in self._correspondents
+                if parsed["id"] == correspondent
+            )
 
     def _fetch_documents(self):
         params = {"page_size": self.limit}
         url = f"{self._instance_url}/api/documents/?{parse.urlencode(params)}"
-        documents = (document for document_list in self._fetch_request(url) for document in document_list)
+        documents = (
+            document
+            for document_list in self._fetch_request(url)
+            for document in document_list
+        )
 
         # This allows us to only run expensive parse functions once at the point of data ingress
         if self._filter_by_tags:
@@ -311,7 +385,9 @@ class Plugin(PluginInstance, IndexQueryHandler):
             documents = self._field_map(documents, "document_type", self._parse_type)
         if self._filter_by_correspondent:
             self._correspondents = self._fetch_correspondents(params)
-            documents = self._field_map(documents, "correspondent", self._parse_correspondent)
+            documents = self._field_map(
+                documents, "correspondent", self._parse_correspondent
+            )
 
         return documents
 
@@ -327,16 +403,25 @@ class Plugin(PluginInstance, IndexQueryHandler):
 
     def _fetch_types(self, params):
         url = f"{self._instance_url}/api/document_types/?{parse.urlencode(params)}"
-        return [doctype for type_list in self._fetch_request(url) for doctype in type_list]
+        return [
+            doctype for type_list in self._fetch_request(url) for doctype in type_list
+        ]
 
     def _fetch_correspondents(self, params):
         url = f"{self._instance_url}/api/correspondents/?{parse.urlencode(params)}"
-        return [correspondent for corr_list in self._fetch_request(url) for correspondent in corr_list]
+        return [
+            correspondent
+            for corr_list in self._fetch_request(url)
+            for correspondent in corr_list
+        ]
 
     def _fetch_request(self, url: str | None):
         while url:
             debug(f"GET request to {url}")
-            headers = {"User-Agent": self.user_agent, "Authorization": f"Token {self._api_key}"}
+            headers = {
+                "User-Agent": self.user_agent,
+                "Authorization": f"Token {self._api_key}",
+            }
             try:
                 response = requests.get(url, headers=headers, timeout=5)
             except requests.ConnectionError:
