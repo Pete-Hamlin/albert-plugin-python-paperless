@@ -256,7 +256,7 @@ class Plugin(PluginInstance, IndexQueryHandler):
                 actions=[
                     Action(
                         "refresh",
-                        "Refresh Linkding index",
+                        "Refresh Paperless index",
                         lambda: self.fetchIndexItems(),
                     )
                 ],

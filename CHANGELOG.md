@@ -1,14 +1,24 @@
 
-<a name="3.8.0"></a>
-## [3.8.0] - 2026-02-03
+<a name="3.8.1"></a>
+## [3.8.1] - 2026-11-08
 ### Bug Fixes
+- Fix triiger query refresh action appearing
 - Update to python API 5.0
+
+
+<a name="3.7.0"></a>
+## [3.7.0] - 2025-12-27
+### Bug Fixes
 - Prevent duplication of index items in fetcher
 - Fix version number
 
 ### Features
 - Add synopsis
 - Update to API v4.0
+
+### BREAKING_CHANGE
+
+Compatible with albert v33.0+ only
 
 
 <a name="3.6.0"></a>
@@ -63,8 +73,9 @@
 <a name="2.0.0"></a>
 ## 2.0.0 - 2024-03-20
 
-[Unreleased]: https://github.com/Pete-Hamlin/albert-paperless/compare/3.8.0...HEAD
-[3.8.0]: https://github.com/Pete-Hamlin/albert-paperless/compare/3.6.0...3.8.0
+[Unreleased]: https://github.com/Pete-Hamlin/albert-paperless/compare/3.8.1...HEAD
+[3.8.1]: https://github.com/Pete-Hamlin/albert-paperless/compare/3.7.0...3.8.1
+[3.7.0]: https://github.com/Pete-Hamlin/albert-paperless/compare/3.6.0...3.7.0
 [3.6.0]: https://github.com/Pete-Hamlin/albert-paperless/compare/3.5.0...3.6.0
 [3.5.0]: https://github.com/Pete-Hamlin/albert-paperless/compare/3.4.0...3.5.0
 [3.4.0]: https://github.com/Pete-Hamlin/albert-paperless/compare/3.3.0...3.4.0
